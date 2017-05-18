@@ -1,8 +1,8 @@
 # Egg Eater
 
-![An Egg Eater](https://classroom.github.com/assignment-invitations/f3f5e113dea5ba7541ecb30dce46f027)
+![An Egg Eater](https://upload.wikimedia.org/wikipedia/commons/9/97/Dasypeltis_atra.jpg)
 
-[Link to your own repo]()
+[Link to your own repo](https://classroom.github.com/assignment-invitations/f3f5e113dea5ba7541ecb30dce46f027)
 
 This assignment implements a _tail call optimization_ for the Diamondback compiler.
 
