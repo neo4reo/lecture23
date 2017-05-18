@@ -1,6 +1,6 @@
 # Egg Eater
 
-![An Egg Eater](https://upload.wikimedia.org/wikipedia/commons/9/97/Dasypeltis_atra.jpg)
+![An Egg Eater](https://classroom.github.com/assignment-invitations/f3f5e113dea5ba7541ecb30dce46f027)
 
 [Link to your own repo]()
 
