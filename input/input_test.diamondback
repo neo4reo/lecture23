@@ -1,0 +1,4 @@
+def f(i1, i2):
+  input(i1) + input(i2)
+
+f(0,0+1)

@@ -1,0 +1,7 @@
+def go(x):
+  if (x < 100000):
+    go(x+1)
+  else:
+    x
+
+go(0)

@@ -1,0 +1,17 @@
+# temporary files
+*.s
+*.o
+*.dSYM
+*.sw*
+*.log
+*~
+*.swp
+\#*\#
+.\#*
+
+# executables
+*.run
+main
+test
+/_build
+a.out
