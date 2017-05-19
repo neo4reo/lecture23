@@ -188,7 +188,7 @@ and compile_tuple (es : expr list)
                   (istail : bool) (si : int) (env : int envt) : instruction list =
   let numargs  = List.length es in
   let to_store = ENumber(numargs)::es in
-    (flatmapi (fun i e -> compile_expr e _FIXME_BOGUS_TC_FLAG (si+1) env
+    (flatmapi (fun i e -> compile_expr e _FIXME_BOGUS_TC_FLAG (si+i) env
                         @ [ IMov (Sized (DWORD_PTR, stackloc (si+i)), Sized (DWORD_PTR, Reg EAX))])
               to_store)
   @ (flatmapi (fun i _ -> [ IMov (Reg EAX, Sized (DWORD_PTR, stackloc (si+i)))
