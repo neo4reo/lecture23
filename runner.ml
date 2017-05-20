@@ -34,7 +34,8 @@ let parse name lexbuf =
 (* Read a file into a string *)
 let string_of_file (file_name : string) : string =
   let inchan = open_in file_name in
-  input_all inchan
+  let str = input_all inchan in
+  close_in inchan; str
 
 let library_string = String.concat "\n" (List.map string_of_file library_files)
 
@@ -163,15 +164,7 @@ let test_err program_str outfile errmsg (args : string list) test_ctxt  =
         | _ -> false
     )
 
-let load_file f =
-  let ic = open_in f in
-  let n = in_channel_length ic in
-  let s = String.create n in
-  really_input ic s 0 n;
-  close_in ic;
-  (s)
-
-let src f = load_file ("input/" ^ f ^ ".egg")
+let src f = string_of_file ("input/" ^ f ^ ".egg")
 
 let t    name program expected = name>::test_run program name expected [];;
 let tvg  name program expected = name>::test_run_valgrind program name expected;;
