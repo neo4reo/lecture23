@@ -21,7 +21,7 @@ main: main.ml compile.ml runner.ml expr.ml misc.ml instruction.ml parser.mly lex
 	$(BUILD) -package $(PKGS) main.native
 	mv main.native main
 
-test: compile.ml runner.ml test.ml expr.ml instruction.ml misc.ml parser.mly lexer.mll myTests.ml
+test: main myTests.ml test.ml
 	$(BUILD) -package $(PKGS) test.native
 	mv test.native test
 
