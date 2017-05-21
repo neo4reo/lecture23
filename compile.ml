@@ -19,7 +19,7 @@ let type_mask ty = HexConst
   (match ty with
    | TNum   -> 0x1
    | TBool  -> 0x3
-   | TTuple -> 0x1
+   | TTuple -> 0x3
   )
 
 let type_tag ty = HexConst
