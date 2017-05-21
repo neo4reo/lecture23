@@ -211,7 +211,7 @@ and compile_get_item (t : expr) (i : expr)
     ; ICmp (Reg EAX, Const 0)
     ; IJl error_too_small
     ; ICmp (Reg EAX, Sized (DWORD_PTR, RegOffset(0, ECX)))
-    ; IJg error_too_large
+    ; IJge error_too_large
     ; ISar (Reg EAX, Const 1)
     ; IMov (Reg EAX, RegOffsetReg (ECX, EAX, 4, 4))
     ]
