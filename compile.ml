@@ -5,8 +5,6 @@ open Misc
 
 type 'a envt = (string * 'a) list
 
-let _FIXME_BOGUS_TC_FLAG = true
-
 let count = ref 0
 let gen_temp base =
   count := !count + 1;
@@ -83,7 +81,7 @@ let is_type ty = typecheck ty @ compare Equal
 
 let rec compile_prim1 (o : prim1) (e : expr)
                       (istail : bool) (si : int) (env : int envt) : instruction list =
-  let prelude = compile_expr e _FIXME_BOGUS_TC_FLAG si env in
+  let prelude = compile_expr e false si env in
   let isnum   = save_to_stack si @ check_eax_num @ restore_stack si in
   let op_is   = match o with
     | Add1    -> isnum @ [ IAdd(Reg(EAX), Const(2)) ]
@@ -99,22 +97,22 @@ let rec compile_prim1 (o : prim1) (e : expr)
 and compile_prim2 (o : prim2) (e1 : expr) (e2 : expr)
                   (istail : bool) (si : int) (env : int envt) : instruction list =
   match o with
-  | Equal -> compile_equals e1 e2 _FIXME_BOGUS_TC_FLAG si env
-  | _     -> compile_prim2_helper o e1 e2 _FIXME_BOGUS_TC_FLAG si env
+  | Equal -> compile_equals e1 e2 false si env
+  | _     -> compile_prim2_helper o e1 e2 false si env
 
 and compile_equals (e1 : expr) (e2 : expr)
                    (istail : bool) (si : int) (env : int envt) : instruction list =
-    compile_expr e2 _FIXME_BOGUS_TC_FLAG si env
+    compile_expr e2 false si env
   @ save_to_stack si
-  @ compile_expr e1 _FIXME_BOGUS_TC_FLAG (si+1) env
+  @ compile_expr e1 false (si+1) env
   @ [ ICmp (Reg EAX, stackloc si) ]
   @ compare Equal
 
 and compile_prim2_helper (o : prim2) (e1 : expr) (e2 : expr)
                          (istail : bool) (si : int) (env : int envt) : instruction list =
   let rhs_loc = stackloc (si+1) in
-  let e1_is   = compile_expr e1 _FIXME_BOGUS_TC_FLAG si env     @ save_to_stack si     @ check_eax_num in
-  let e2_is   = compile_expr e2 _FIXME_BOGUS_TC_FLAG (si+1) env @ save_to_stack (si+1) @ check_eax_num in
+  let e1_is   = compile_expr e1 false si env     @ save_to_stack si     @ check_eax_num in
+  let e2_is   = compile_expr e2 false (si+1) env @ save_to_stack (si+1) @ check_eax_num in
   let op_is   = match o with
     | Plus    -> [ IAdd (Reg(EAX), rhs_loc); check_overflow ]
     | Minus   -> [ ISub (Reg(EAX), rhs_loc); check_overflow ]
@@ -133,17 +131,17 @@ and compile_prim2_helper (o : prim2) (e1 : expr) (e2 : expr)
 and compile_let (bs : (string * expr) list) (body : expr)
                 (istail : bool) (si : int) (env : int envt) : instruction list =
   match bs with
-  | []         -> compile_expr body _FIXME_BOGUS_TC_FLAG si env
+  | []         -> compile_expr body false si env
   | (x,e)::bs' ->
-     (compile_expr e _FIXME_BOGUS_TC_FLAG si env)
+     (compile_expr e false si env)
      @ save_to_stack si
-     @ compile_let bs' body _FIXME_BOGUS_TC_FLAG (si+1) ((x,si)::env)
+     @ compile_let bs' body false (si+1) ((x,si)::env)
 
 and compile_if (cond : expr) (e_then : expr) (e_else : expr)
                (istail : bool) (si : int) (env : int envt) : instruction list =
-  let cond_is    = compile_expr cond   _FIXME_BOGUS_TC_FLAG si env in
-  let then_is    = compile_expr e_then _FIXME_BOGUS_TC_FLAG si env in
-  let else_is    = compile_expr e_else _FIXME_BOGUS_TC_FLAG si env in
+  let cond_is    = compile_expr cond   false si env in
+  let then_is    = compile_expr e_then false si env in
+  let else_is    = compile_expr e_else false si env in
   let label_then = gen_temp "then" in
   let label_else = gen_temp "else" in
   let label_end  = gen_temp "end"  in
@@ -163,32 +161,24 @@ and compile_if (cond : expr) (e_then : expr) (e_else : expr)
 and compile_app (f : string) (args : expr list)
                 (istail : bool) (si : int) (env : int envt) : instruction list =
   let put_args es offset env =
-    let put1 i e = compile_expr e _FIXME_BOGUS_TC_FLAG (offset + i) env
+    let put1 i e = compile_expr e false (offset + i) env
                 @ [ IMov (Sized(DWORD_PTR,stackloc (offset + i)), Reg EAX) ]
     in flatmapi put1 es
   in
-  let compile_app_normal () =
-    let lbl = gen_temp "after_call" in
-    [ IMov(Sized(DWORD_PTR, stackloc si), Label lbl)
-    ; IMov(stackloc (si+1), Reg ESP) ]
-    @ put_args args (si+2) env
-    @ [ ISub(Reg ESP, Const (si*4))
-      ; IJmp f
-      ; ILabel lbl
-      ; IMov(Reg ESP, stackloc 2) ]
-  in
-  let compile_app_tailcall () =
-    failwith "TODO: compile_app_tailcall"
-  in
-  if istail
-  then compile_app_tailcall ()
-  else compile_app_normal ()
+  let lbl = gen_temp "after_call" in
+  [ IMov(Sized(DWORD_PTR, stackloc si), Label lbl)
+  ; IMov(stackloc (si+1), Reg ESP) ]
+  @ put_args args (si+2) env
+  @ [ ISub(Reg ESP, Const (si*4))
+    ; IJmp f
+    ; ILabel lbl
+    ; IMov(Reg ESP, stackloc 2) ]
 
 and compile_tuple (es : expr list)
                   (istail : bool) (si : int) (env : int envt) : instruction list =
   let numargs  = List.length es in
   let to_store = ENumber(numargs)::es in
-    (flatmapi (fun i e -> compile_expr e _FIXME_BOGUS_TC_FLAG (si+i) env
+    (flatmapi (fun i e -> compile_expr e false (si+i) env
                         @ [ IMov (Sized (DWORD_PTR, stackloc (si+i)), Sized (DWORD_PTR, Reg EAX))])
               to_store)
   @ (flatmapi (fun i _ -> [ IMov (Reg EAX, Sized (DWORD_PTR, stackloc (si+i)))
@@ -201,9 +191,9 @@ and compile_tuple (es : expr list)
 
 and compile_get_item (t : expr) (i : expr)
                      (istail : bool) (si : int) (env : int envt) : instruction list =
-  compile_expr t _FIXME_BOGUS_TC_FLAG si env @ save_to_stack si
+  compile_expr t false si env @ save_to_stack si
   @ typecheck TTuple @ [ IJne error_non_tuple ]
-  @ compile_expr i _FIXME_BOGUS_TC_FLAG (si+1) env @ save_to_stack (si+1)
+  @ compile_expr i false (si+1) env @ save_to_stack (si+1)
   @ check_eax_num
   @ [ IMov (Reg ECX, stackloc si)
     ; IXor (Reg ECX, type_tag TTuple)
@@ -228,19 +218,19 @@ and compile_expr (e : expr)
                | None    -> failwith "unbound identifier"
                end
      in [ IMov (Reg(EAX), arg) ]
-  | EPrim1 (op, e')          -> compile_prim1    op e'         _FIXME_BOGUS_TC_FLAG si env
-  | EPrim2 (op, e1, e2)      -> compile_prim2    op e1 e2      _FIXME_BOGUS_TC_FLAG si env
-  | ELet   (bs, body)        -> compile_let      bs body       _FIXME_BOGUS_TC_FLAG si env
-  | EIf    (c, ethen, eelse) -> compile_if       c ethen eelse _FIXME_BOGUS_TC_FLAG si env
-  | EApp   (f, args)         -> compile_app      f args        _FIXME_BOGUS_TC_FLAG si env
-  | ETuple (args)            -> compile_tuple    args          _FIXME_BOGUS_TC_FLAG si env
-  | EGetItem(tuple,index)    -> compile_get_item tuple index   _FIXME_BOGUS_TC_FLAG si env
+  | EPrim1 (op, e')          -> compile_prim1    op e'         false si env
+  | EPrim2 (op, e1, e2)      -> compile_prim2    op e1 e2      false si env
+  | ELet   (bs, body)        -> compile_let      bs body       false si env
+  | EIf    (c, ethen, eelse) -> compile_if       c ethen eelse false si env
+  | EApp   (f, args)         -> compile_app      f args        false si env
+  | ETuple (args)            -> compile_tuple    args          false si env
+  | EGetItem(tuple,index)    -> compile_get_item tuple index   false si env
 
 let compile_decl (d : decl) : instruction list =
   let DFun (fname, args, body) = d in
   let env = List.rev (List.mapi (fun i s -> (s, i+2)) args) in
   let si = List.length args + 2 in
-  [ ILabel fname ] @ compile_expr body _FIXME_BOGUS_TC_FLAG si env @ [ IRet ]
+  [ ILabel fname ] @ compile_expr body false si env @ [ IRet ]
 
 let rec well_formed_e (e : expr) (ds : decl list) (env : bool envt) =
   let go xs = flatmap (fun x -> well_formed_e x ds env) xs in
@@ -317,7 +307,7 @@ let compile_to_string prog =
      match prog with
      | Program(decls, main) ->
         let compiled_decls = flatmap compile_decl decls in
-        let compiled_main = compile_expr main _FIXME_BOGUS_TC_FLAG 1 [] in
+        let compiled_main = compile_expr main false 1 [] in
         let prelude = unlines
           [ "section .text"
           ; "extern error"
