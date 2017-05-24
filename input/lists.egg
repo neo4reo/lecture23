@@ -1,0 +1,18 @@
+def link(first, rest):
+  (first, rest)
+
+def map(f, l):
+  if l == false: false
+  else:
+    link(f(l[0]), map(f, l[1]))
+
+def square(x): x * x
+
+def increment(x): x + 1
+
+let lst1 = (1, (2, (3, false))) in
+let lst2 = link(1, link(2, link(3, false))) in
+let answer = (2, (3, (4, false))) in
+
+map(increment, lst1)
+

@@ -21,6 +21,8 @@ type arg =
   | Label of string
 
 type instruction =
+  | IAlign of int
+
   | IMov of arg * arg
 
   | IAdd of arg * arg
@@ -48,6 +50,7 @@ type instruction =
   | IJl of string
   | IJle of string
   | IJmp of string
+  | IJmpReg of reg
   | IJno of string
   | IJo of string
 
@@ -97,6 +100,8 @@ let rec arg_to_asm (a : arg) : string =
 
 let i_to_asm (i : instruction) : string =
   match i with
+    | IAlign(n) ->
+      sprintf "align %d" n
     | IMov(dest, value) ->
       sprintf "  mov %s, %s" (arg_to_asm dest) (arg_to_asm value)
     | IAdd(dest, to_add) ->
@@ -143,6 +148,8 @@ let i_to_asm (i : instruction) : string =
       sprintf "  jo near %s" label
     | IJmp(label) ->
       sprintf "  jmp near %s" label
+    | IJmpReg(reg) ->
+      sprintf "  jmp near %s" (r_to_asm reg)
     | IComment(comment) ->
       sprintf ";; %s" comment
     | IRet ->

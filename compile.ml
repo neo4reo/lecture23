@@ -169,9 +169,16 @@ and compile_app (f : string) (args : expr list)
   [ IMov(Sized(DWORD_PTR, stackloc si), Label lbl)
   ; IMov(stackloc (si+1), Reg ESP) ]
   @ put_args args (si+2) env
-  @ [ ISub(Reg ESP, Const (si*4))
-    ; IJmp f
-    ; ILabel lbl
+  @ begin match find env f with
+      | None ->
+        [ ISub(Reg ESP, Const (si*4))
+        ; IJmp f]
+      | Some(i) ->
+        [ IMov(Reg EAX, stackloc i)
+        ; ISub(Reg ESP, Const (si*4))
+        ; IJmpReg(EAX)]
+    end
+  @ [ ILabel lbl
     ; IMov(Reg ESP, stackloc 2) ]
 
 and compile_tuple (es : expr list)
@@ -215,7 +222,7 @@ and compile_expr (e : expr)
   | EId     (rx) ->
      let arg = begin match find env rx with
                | Some(i) -> stackloc i
-               | None    -> failwith "unbound identifier"
+               | None    -> Label(rx)
                end
      in [ IMov (Reg(EAX), arg) ]
   | EPrim1 (op, e')          -> compile_prim1    op e'         false si env
@@ -230,7 +237,7 @@ let compile_decl (d : decl) : instruction list =
   let DFun (fname, args, body) = d in
   let env = List.rev (List.mapi (fun i s -> (s, i+2)) args) in
   let si = List.length args + 2 in
-  [ ILabel fname ] @ compile_expr body false si env @ [ IRet ]
+  [ IAlign(8); ILabel fname ] @ compile_expr body false si env @ [ IRet ]
 
 let rec well_formed_e (e : expr) (ds : decl list) (env : bool envt) =
   let go xs = flatmap (fun x -> well_formed_e x ds env) xs in
@@ -240,7 +247,10 @@ let rec well_formed_e (e : expr) (ds : decl list) (env : bool envt) =
     | ETuple(elts)   -> go elts
     | EId(x) ->
        begin match find env x with
-       | None -> ["Unbounded variable identifier " ^ x]
+       | None -> begin match find_decl ds x with
+          | None -> ["Unbound id " ^ x]
+          | Some(_) -> []
+         end
        | Some(_) -> []
        end
     | EPrim1(op, e) -> go [e]
@@ -249,7 +259,11 @@ let rec well_formed_e (e : expr) (ds : decl list) (env : bool envt) =
 
     | EApp(name, args) ->
        begin match find_decl ds name with
-       | None -> ["No such function: " ^ name]
+       | None ->
+         begin match find env name with
+           | None -> ["Unknown function/id " ^ name]
+           | Some(_) -> []
+         end
        | Some(DFun(_,params,_)) ->
           if List.length params = List.length args
           then []

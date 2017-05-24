@@ -26,7 +26,7 @@ test: main myTests.ml test.ml
 	mv test.native test
 
 output/%.run: output/%.o main.c
-	clang $(TARGET) -mstackrealign -g -m32 -o $@ main.c $<
+	clang $(TARGET) -Wl,-no_pie -mstackrealign -g -m32 -o $@ main.c $<
 
 output/%.o: output/%.s
 	nasm -f $(FORMAT) -o $@ $<
